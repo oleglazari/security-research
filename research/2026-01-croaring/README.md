@@ -17,3 +17,20 @@ size_t tz = read_var.getSizeInBytes(true);
 buf += tz;
 maxbytes -= tz; // <--- Vulnerable Line
 ```
+
+When tz exceeds maxbytes, the unsigned subtraction wraps around to a value approaching UINT64_MAX. This effectively bypasses all subsequent maxbytes-based bounds checks, allowing for Out-of-Bounds (OOB) memory access during subsequent iterations of the parsing loop.
+Exploitation Primitive
+
+The underflow provides a reliable OOB read primitive. During triage, this was demonstrated to facilitate:
+
+    Heap Metadata Leakage: Disclosure of adjacent chunk headers.
+
+    Sensitive Data Disclosure: Retrieval of adjacent heap allocation contents.
+
+    Pointer Leakage: Leakage of libc addresses, enabling ASLR bypass.
+
+## Remediation
+
+The issue was resolved by implementing a boundary check prior to the subtraction operation.
+
+A regression test, safe_test_lazari, was integrated into the CRoaring test suite to ensure the arithmetic safety of the readSafe loop.
