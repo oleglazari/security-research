@@ -1,49 +1,19 @@
-# CRoaring Vulnerability Disclosure
+# Vulnerability Disclosure: Integer Underflow in CRoaring `readSafe()`
 
-## Overview
+- **Date:** January 2026
+- **Target:** [CRoaring](https://github.com/RoaringBitmap/CRoaring) (v4.5.1)
+- **Vulnerability Type:** Integer Underflow -> OOB Read
+- **Impact:** Memory disclosure, including heap metadata and adjacent allocations (secrets/pointers).
+- **Status:** Fixed in v4.5.2
 
-This directory contains research and proof-of-concept code for vulnerabilities discovered in CRoaring.
-
-## Vulnerability Details
-
-**CVE ID:** TBD  
-**Severity:** TBD  
-**Affected Versions:** TBD  
-**Discovery Date:** January 2026
-
-## Description
-
-[Detailed description of the vulnerability]
-
-## Impact
-
-[Description of the security impact]
-
-## Proof of Concept
-
-See `poc.cpp` for a proof-of-concept demonstration.
+## Vulnerability Summary
+An integer underflow exists in the `readSafe()` parsing loop of `Roaring64Map`. The vulnerability occurs when the portable serialization size (`tz`) of a bitmap entry is larger than the remaining buffer size (`maxbytes`).
 
 ## Root Cause Analysis
+In `cpp/roaring64map.hh`, the following logic is used to decrement the remaining bytes during a safe read:
 
-[Detailed analysis of the root cause]
-
-## Remediation
-
-[Recommended fixes and mitigations]
-
-## Timeline
-
-- **Discovery Date:** TBD
-- **Vendor Notification:** TBD
-- **Vendor Response:** TBD
-- **Public Disclosure:** TBD
-
-## References
-
-- [Link to official advisory]
-- [Link to patch]
-- [Additional references]
-
-## Credits
-
-[Researcher credits]
+```cpp
+size_t tz = read_var.getSizeInBytes(true);
+buf += tz;
+maxbytes -= tz; // <--- Vulnerable Line
+```
